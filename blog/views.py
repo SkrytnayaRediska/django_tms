@@ -1,24 +1,39 @@
 from django.shortcuts import render, get_object_or_404, HttpResponse
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.views.generic import ListView
 from .models import Post
+from django.core.mail import send_mail
+from .forms import EmailPostForm
 
 
-def post_list(request):
-    posts = Post.objects.all().order_by('publish')
-    paginator = Paginator(posts, 3)
-    page = request.GET.get('page')
-    try:
-        page_posts = paginator.page(page)
-    except PageNotAnInteger:
-        page_posts = paginator.page(1)
-    except EmptyPage:
-        page_posts = paginator.page(paginator.num_pages)
+class PostListView(ListView):
+    queryset = Post.objects.all().order_by('publish')
+    context_object_name = 'posts'
+    paginate_by = 3
+    template_name = 'list.html'
 
+
+def post_share_view(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    if request.method == 'POST':
+        form = EmailPostForm(request.POST)
+        if form.is_valid():
+            cd = form.cleaned_data
+            post_url = "TEST URL"
+            subject = '{} ({}) recommends you reading "{}"'.format(cd['name'], cd['email'], post.title)
+            message = 'Read "{}" at {}\n\n{}\'s comments: {}'.format(post.title, post_url, cd['name'], cd['comment'])
+            send_mail(subject, message, '*******', [cd['to']])
+            sent = True
+        # TODO: email sending
+    else:
+        form = EmailPostForm()
+        sent = False
     return render(request,
-                  'list.html',
+                  'share_post.html',
                   {
-                      'page': page,
-                      'posts': page_posts
+                      'post': post,
+                      'form': form,
+                      'sent': sent
                   })
 
 
