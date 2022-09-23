@@ -3,11 +3,9 @@ from .models import Post
 
 
 def post_list(request):
-    # posts = get_object_or_404(Post, id=2)
     posts = Post.objects.all()
-    result = [post.title for post in posts]
 
-    return HttpResponse(result)
+    return render(request, 'list.html', {'posts': posts})
 
 
 def post_detail(request, year, month, day, post):
